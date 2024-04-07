@@ -1,0 +1,113 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Página de Registro e Inicio de Sesión</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Incluir SweetAlert para mejores notificaciones -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+</head>
+<body>
+    <div class="login-page">
+        <div class="form">
+            <!-- Formulario de registro -->
+            <form class="register-form" style="display:none;" id="register-form">
+                <input type="text" id="name" placeholder="Nombre de Usuario" required/>
+                <input type="password" id="password" placeholder="Contraseña" required/>
+                <button type="button" id="create_account_btn">Crear</button>
+                <button type="button" id="generate_password_btn">Generar Contraseña Segura</button>
+                <p class="message">¿Ya estas registrado? <a href="#" onclick="showLoginForm()">Sign In</a></p>
+            </form>
+            <!-- Formulario de inicio de sesión -->
+            <form class="login-form" id="login-form">
+                <input type="text" name="username" placeholder="Nombre de Usuario" required/>
+                <input type="password" name="password" placeholder="Contraseña" required/>
+                <button type="submit">iniciar</button>
+                <p class="message">¿No estas registrado?<a href="#" onclick="showRegisterForm()">Create tu cuenta</a></p>
+            </form>
+        </div>
+    </div>
+    <script>
+ // Función para mostrar notificaciones con SweetAlert
+function showNotification(message, type) {
+    Swal.fire({
+        icon: type,
+        title: type === 'error' ? 'Error' : 'Success',
+        text: message,
+        timer: 3000
+    });
+}
+
+// Función para mostrar el formulario de registro
+function showRegisterForm() {
+    $('.login-form').hide();
+    $('.register-form').show();
+}
+
+// Función para mostrar el formulario de inicio de sesión
+function showLoginForm() {
+    $('.register-form').hide();
+    $('.login-form').show();
+}
+
+// Función para generar una contraseña segura y mostrarla
+$('#generate_password_btn').click(function() {
+    $.post('/generate-password', function(data) {
+        var passwordField = $('#password');
+        passwordField.val(data.password);
+        // Cambiar el tipo de input a texto para mostrar la contraseña
+        passwordField.attr('type', 'text');
+        // Opcional: Establecer un temporizador para ocultar la contraseña después de un tiempo
+        setTimeout(function() {
+            passwordField.attr('type', 'password');
+        }, 5000); // Oculta la contraseña después de 5 segundos
+        showNotification('Contraseña generada con éxito', 'success');
+    });
+});
+
+// Función para registrar un usuario
+$('#create_account_btn').click(function() {
+    var name = $('#name').val();
+    var password = $('#password').val();
+    $.post('/register', {name: name, password: password}, function(data) {
+        if(data.message) {
+            showNotification(data.message, 'success');
+            showLoginForm();
+        } else if(data.error) {
+            showNotification(data.error, 'error');
+        }
+    }).fail(function(jqXHR) {
+        // Manejo de errores de la solicitud, como problemas de red o errores del servidor
+        var errorResponse = JSON.parse(jqXHR.responseText);
+        showNotification(errorResponse.error, 'error');
+    });
+});
+
+
+// Función para iniciar sesión
+$('#login-form').submit(function(event) {
+    event.preventDefault();
+    var username = $('input[name="username"]').val();
+    var password = $('input[name="password"]').val();
+    $.ajax({
+        url: '/login',
+        type: 'POST',
+        data: {username: username, password: password},
+        dataType: 'json', // Espera una respuesta en formato JSON
+        success: function(data) {
+            if(data.message) {
+                showNotification(data.message, 'success');
+            } else if(data.error) {
+                showNotification(data.error, 'error');
+            }
+        },
+        error: function(xhr, status, error) {
+            // Manejo de errores de la solicitud, como problemas de red o errores del servidor
+            showNotification('Error al procesar la solicitud: ' + error, 'error');
+        }
+    });
+});
+    </script>
+</body>
+</html>
+
